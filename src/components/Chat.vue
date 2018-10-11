@@ -1,5 +1,5 @@
 <template>
-  <main v-if="isSignedIn">
+  <main>
     <div class="chat-area">
       <div class="conversation">
         <ul class="conversation__inner">
@@ -15,6 +15,7 @@
       <div class="post">
         <input type="text" class="post__text" v-model="message">
         <button type="button" class="post__button" @click="postMessage">SEND</button>
+        <p class="error-message" v-if="errorMessage">{{ errorMessage }}</p>
       </div>
     </div>
   </main>
@@ -31,6 +32,7 @@ export default {
   data () {
     return {
       message: null,
+      errorMessage: null,
       messageList: []
     }
   },
@@ -38,29 +40,32 @@ export default {
     this.loadMessages()
   },
   methods: {
-    postMessage(){
+    postMessage () {
       let that = this
       if (!that.isSignedIn || !that.message) return
       firebase.database().ref('/messages/').push({
         name: that.userName,
         text: that.message,
         profilePicUrl: that.userPic
-      }).catch( error => {
-        console.error('Error writing new message to Firebase Database', error);
-      });
-
-      that.message = null;
+      })
+      .then( data => {
+        that.errorMessage = null
+        that.message = null
+      })
+      .catch( error => {
+        that.errorMessage = '正しく入力してください'
+      })
     },
-    loadMessages(){
+    loadMessages () {
       firebase.database().ref('/messages/').on('value', (snapshot) => {
         if (snapshot) {
-          let rootList = snapshot.val();
-          let messageList = [];
+          let rootList = snapshot.val()
+          let messageList = []
           Object.keys(rootList).forEach((val, key) => {
-            rootList[val].id = val;
-            messageList.push(rootList[val]);
+            rootList[val].id = val
+            messageList.push(rootList[val])
           })
-          this.messageList = messageList;
+          this.messageList = messageList
         }
       })
     }
@@ -75,7 +80,7 @@ export default {
     max-width: 500px;
     width: 90%;
     box-sizing: border-box;
-    padding: 25px;
+    padding: 25px 35px;
     margin: 20px 5% 0;
   }
 
@@ -131,6 +136,7 @@ export default {
     width: 100%;
     display: flex;
     align-items: center;
+    position: relative;
     input {
       width: 80%;
       height: 35px;
@@ -142,5 +148,15 @@ export default {
       border: 1px solid #878787;
       color: #878787;
     }
+  }
+
+  .error-message {
+    color: #f00;
+    font-size: .8em;
+    margin: 5px 0 0;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    transform: translateY(100%);
   }
 </style>
